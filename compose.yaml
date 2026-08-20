@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: trackfolio
+      POSTGRES_PASSWORD: trackfolio
+      POSTGRES_DB: trackfolio
+    # 5435 en el host: 5432-5434 suelen estar tomados por instalaciones locales de Postgres.
+    ports:
+      - "5435:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

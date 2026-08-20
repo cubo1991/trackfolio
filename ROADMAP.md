@@ -1,0 +1,158 @@
+# TrackFolio — Roadmap
+
+Tracker de postulaciones laborales con pipeline Kanban, métricas y asistente IA opcional.
+
+**Regla de avance:** cada etapa se cierra cuando cumple su criterio de "listo". No se arranca la
+siguiente con la anterior a medio terminar — el objetivo es que el repo sea presentable en
+cualquier commit, no solo al final.
+
+---
+
+## Fase 1 — MVP
+
+### Etapa 0 — Base del repo
+- `git init`, `.gitignore`, monorepo `backend/` + `frontend/`.
+- `backend/pyproject.toml` con deps mínimas, `.env.example`.
+- `compose.yaml` con Postgres (solo la DB; la app corre nativa).
+
+**Listo cuando:** `docker compose up -d` levanta Postgres y el repo tiene su primer commit.
+
+### Etapa 1 — Modelo de datos
+- `User` (email, hashed_password, role, created_at).
+- `Application` (user_id, company, position, applied_date, status, url, notes, tags, timestamps).
+- `StatusChange` (application_id, from_status, to_status, changed_at).
+- Creación de tablas al arrancar la app (sin Alembic todavía, ver Decisiones).
+
+**Listo cuando:** las tablas se crean contra Postgres y se puede insertar/leer desde una consola.
+
+### Etapa 2 — Auth
+- Registro y login con JWT (`/auth/register`, `/auth/login`).
+- Hash de passwords con bcrypt.
+- Dependencies `get_current_user` y `require_admin`.
+
+**Listo cuando:** un token válido identifica al usuario y uno inválido/expirado devuelve 401.
+
+### Etapa 3 — CRUD de postulaciones + tests
+- `GET/POST/PATCH/DELETE /applications`.
+- Ownership: cada usuario ve y toca solo lo suyo; admin ve todo.
+- Registro automático de `StatusChange` cuando cambia el estado.
+- Tests con pytest sobre SQLite en memoria: auth, ownership, transición de estado.
+
+**Listo cuando:** la suite pasa en verde y cubre los tres casos de arriba.
+
+### Etapa 4 — Frontend: base
+- Next.js + TypeScript + Tailwind.
+- Cliente `lib/api.ts` con el header de auth, tipos espejo del backend.
+- Pantalla de login y guard de rutas.
+
+**Listo cuando:** se puede loguear desde el navegador y la sesión sobrevive un refresh.
+
+### Etapa 5 — Kanban
+- Cinco columnas por estado, tarjetas de postulación.
+- Store de Zustand con el estado del tablero.
+- Drag & drop entre columnas → PATCH al backend, con optimistic update y rollback si falla.
+
+**Listo cuando:** mover una tarjeta persiste el estado, y si la API falla la tarjeta vuelve sola a
+su columna original.
+
+### Etapa 6 — Filtros y búsqueda
+- Por empresa (texto), estado, tags y rango de fechas.
+- Filtrado en el backend vía query params (no filtrar en el cliente: no escala y además el
+  endpoint filtrable es lo que se muestra en un README).
+
+**Listo cuando:** combinar varios filtros devuelve el subconjunto correcto.
+
+### Etapa 7 — Tests de frontend
+- Jest sobre la lógica del store: mover tarjeta, rollback, aplicar filtros.
+- Sin tests de render de componentes por ahora (ver Decisiones).
+
+**Listo cuando:** la suite pasa y cubre el rollback, que es la lógica más fácil de romper.
+
+> **Fin de Fase 1.** Acá el proyecto ya es usable para trackear la búsqueda real.
+
+---
+
+## Fase 2 — Métricas e IA
+
+### Etapa 8 — Alertas de seguimiento
+- Postulaciones sin movimiento después de X días (X configurable por usuario).
+- Cálculo sobre `StatusChange` / `updated_at`, sin tareas programadas: se evalúa al pedir la lista.
+
+**Listo cuando:** una postulación vieja aparece marcada y el umbral es configurable.
+
+### Etapa 9 — Dashboard de métricas
+- Tasa de respuesta, tiempo promedio a primera respuesta, funnel aplicado → entrevista → oferta.
+- Gráficos con Recharts.
+- Cálculo en el backend (`services/metrics.py`), el frontend solo dibuja.
+
+**Listo cuando:** los números coinciden con los datos reales cargados.
+
+### Etapa 10 — Asistente IA (opcional)
+- Pegar el texto de una oferta → sugerencia de tags de stack + resumen de fit contra un perfil.
+- API de Anthropic, key por variable de entorno, endpoint aislado del resto.
+
+**Listo cuando:** funciona con key configurada y el resto de la app funciona igual sin ella.
+
+### Etapa 11 — Deploy
+- Front en Vercel, back en Railway o Render, Postgres administrado.
+- Alembic acá sí: con datos reales en producción, `create_all` deja de alcanzar.
+
+**Listo cuando:** la app corre en las URLs públicas con los datos reales.
+
+### Etapa 12 — README
+Documento final que cuenta las decisiones, no solo cómo instalar. Insumo: la sección de abajo.
+
+---
+
+## Decisiones técnicas (insumo para el README)
+
+Se van completando a medida que se toman. Las de arranque:
+
+- **Sin repository/service layer en el CRUD.** Los routers hablan directo con la sesión de
+  SQLModel. Un repositorio con una sola implementación es indirección sin beneficio a esta escala.
+  `services/` aparece en la Etapa 9, cuando las métricas justifican lógica fuera del router.
+
+- **Tags como JSONB, no tabla many-to-many.** Son etiquetas libres sin metadata propia. Postgres
+  filtra con `@>` y un índice GIN si hiciera falta. Si algún día los tags necesitan color o
+  conteo global, ahí se migra a tabla.
+
+- **`StatusChange` desde la Etapa 1, aunque las métricas sean Fase 2.** Las métricas se calculan
+  sobre transiciones históricas y los datos que no se capturan no se reconstruyen. Como el
+  dogfooding arranca en Fase 1, capturar la transición desde el día uno cuesta cinco líneas.
+
+- **Rol como columna, no sistema de permisos.** Dos roles con semántica fija se resuelven con una
+  dependency y un filtro por `user_id`.
+
+- **`create_all` en vez de Alembic hasta el deploy.** Mientras el esquema cambia todos los días y
+  la DB es descartable, las migraciones son costo puro. Alembic entra en la Etapa 11, donde hay
+  datos que no se pueden perder.
+
+- **SQLite en memoria para los tests del backend, con las claves foráneas activadas.** La suite
+  corre sin Postgres levantado y en segundos. El riesgo es que SQLite y Postgres no se comportan
+  igual: por defecto SQLite ignora las claves foráneas, así que un borrado que dejaba huérfanas
+  las filas de historial pasaba los tests y explotaba contra Postgres. Se activa
+  `PRAGMA foreign_keys=ON` en los tests para cerrar esa clase de diferencia, y las queries de
+  filtrado se prueban además contra Postgres en la Etapa 6 por el tema JSONB.
+
+- **Borrado en cascada declarado en la base (`ON DELETE CASCADE`), no en el router.** Borrar la
+  postulación se lleva su historial por constraint. Limpiar a mano desde el endpoint dependía de
+  que SQLAlchemy ordenara los DELETE en el orden correcto, cosa que sin una relación declarada no
+  hace.
+
+- **bcrypt directo, sin passlib.** Passlib agrega una capa de abstracción sobre esquemas de hash
+  que acá no se necesita (hay uno solo) y arrastra un problema conocido de compatibilidad con
+  bcrypt 4.x. Hashear y verificar son una línea cada una con la librería `bcrypt`. Se valida el
+  límite de 72 bytes en el borde: bcrypt trunca en silencio más allá de eso.
+
+- **Timestamps con zona horaria (`TIMESTAMP WITH TIME ZONE`).** El default de SQLAlchemy es sin
+  zona y devuelve datetimes naive; restarlos contra un `now()` aware es un `TypeError`, y eso es
+  justo lo que hacen las alertas y las métricas de la Fase 2. Cuesta una función y evita un bug
+  garantizado más adelante.
+
+- **Login con el mismo error y el mismo tiempo para email inexistente y password incorrecta.**
+  Mensajes distintos permiten enumerar qué emails están registrados; tiempos distintos también,
+  así que contra un email inexistente igual se verifica contra un hash descartable.
+
+- **Jest solo sobre la lógica del store.** Es lógica pura, sin DOM: alto valor por test y no se
+  rompe cuando cambia el markup. Los tests de render con Testing Library se agregan si aparece un
+  componente con lógica propia que valga la pena fijar.
