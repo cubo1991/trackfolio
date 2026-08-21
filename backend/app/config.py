@@ -19,5 +19,10 @@ class Settings(BaseSettings):
     # por entorno con el dominio del frontend.
     cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
+    # Asistente de ofertas. Opcional a proposito: sin key, la app entera funciona igual y solo
+    # ese endpoint devuelve 503.
+    anthropic_api_key: str | None = None
+    anthropic_model: str = "claude-opus-5"
+
 
 settings = Settings()

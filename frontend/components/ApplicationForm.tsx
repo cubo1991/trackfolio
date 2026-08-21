@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { IconClose } from "@/components/icons";
+import { OfferAssistant } from "@/components/OfferAssistant";
 import { ApiError } from "@/lib/api";
 import { STATUSES, STATUS_LABELS, type Application, type ApplicationCreate } from "@/lib/types";
 
@@ -178,6 +179,16 @@ export function ApplicationForm({ application, onSubmit, onDelete, onClose }: Pr
               className={`${FIELD} resize-none`}
             />
           </Field>
+
+          <OfferAssistant
+            currentTags={tags.split(",").map((tag) => tag.trim()).filter(Boolean)}
+            onAddTags={(nuevos) =>
+              setTags((actuales) => {
+                const lista = actuales.split(",").map((tag) => tag.trim()).filter(Boolean);
+                return [...lista, ...nuevos.filter((tag) => !lista.includes(tag))].join(", ");
+              })
+            }
+          />
 
           {error && (
             <p

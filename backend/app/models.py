@@ -58,6 +58,9 @@ class User(SQLModel, table=True):
     # Por usuario: quien aplica a 5 puestos por semana no tiene el mismo ritmo que quien
     # aplica a 5 por mes.
     stale_after_days: int = Field(default=14)
+    # Perfil en texto libre contra el que el asistente compara una oferta. Texto y no campos
+    # estructurados: una busqueda laboral no entra en un formulario, y el modelo lee prosa.
+    profile: str | None = None
     created_at: datetime = Field(default_factory=utcnow, sa_column=utc_column())
 
 

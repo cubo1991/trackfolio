@@ -23,6 +23,7 @@ class UserRead(BaseModel):
     email: EmailStr
     role: Role
     stale_after_days: int
+    profile: str | None
     created_at: datetime
 
 
@@ -30,7 +31,8 @@ class UserUpdate(BaseModel):
     """Preferencias del usuario. El tope de un año no es capricho: más allá de eso el umbral
     deja de ser una alerta y esconde un valor sin sentido (o negativo, que marcaría todo)."""
 
-    stale_after_days: int = Field(ge=1, le=365)
+    stale_after_days: int | None = Field(default=None, ge=1, le=365)
+    profile: str | None = Field(default=None, max_length=4000)
 
 
 class ApplicationCreate(BaseModel):
@@ -104,3 +106,7 @@ class Metrics(BaseModel):
     #: None mientras no haya ninguna respuesta con fecha; un cero ahí sería mentira.
     median_days_to_first_response: int | None
     funnel: list[FunnelStage]
+
+
+class OfferAnalysisRequest(BaseModel):
+    offer_text: str = Field(min_length=40, max_length=20_000)

@@ -246,6 +246,28 @@ Se van completando a medida que se toman. Las de arranque:
   distintas en vez de momentos del mismo recorrido. La rampa se validó con el script de la guía
   de visualización contra el papel, no a ojo.
 
+- **El asistente es opcional de verdad, no opcional en el papel.** Sin `ANTHROPIC_API_KEY` el
+  endpoint devuelve 503 con un mensaje que dice qué falta, el frontend consulta
+  `/assistant/status` y directamente no dibuja la función. Nada de un botón que promete algo y
+  después explota. Hay un test que verifica que el resto de la app —CRUD, filtros, métricas—
+  responde 200 con la key ausente.
+
+- **Salida estructurada en vez de parsear texto libre.** Se le pasa un esquema Pydantic y la API
+  valida la respuesta contra él. Sin eso habría que parsear prosa y rezar para que el formato se
+  respete, que es la clase de fragilidad que aparece recién en producción.
+
+- **Ningún test llama a la API de verdad.** Una suite que sale a internet es lenta, falla por
+  motivos ajenos al código y cuesta plata por corrida. Además lo que hay que fijar no es que el
+  modelo acierte —eso no es determinista— sino cómo se comporta el endpoint en los tres casos que
+  sí controlamos: sin key, con el proveedor caído y con una respuesta válida.
+
+- **Los errores del proveedor se traducen en el borde.** Un timeout de Anthropic es un 502 con
+  un mensaje legible, no un 500 con el stack de otra empresa adentro. Hay un test que verifica
+  que el detalle del error interno no se filtre al usuario.
+
+- **Las sugerencias del modelo nunca se aplican solas.** Los tags detectados se agregan con un
+  click. Son los tags del usuario y el modelo se puede equivocar.
+
 - **Jest solo sobre la lógica del store.** Es lógica pura, sin DOM: alto valor por test y no se
   rompe cuando cambia el markup. Los tests de render con Testing Library se agregan si aparece un
   componente con lógica propia que valga la pena fijar. Por lo mismo el entorno es `node` y no

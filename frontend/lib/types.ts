@@ -27,6 +27,8 @@ export interface User {
   email: string;
   role: Role;
   stale_after_days: number;
+  /** Perfil en texto libre contra el que el asistente compara una oferta. */
+  profile: string | null;
   created_at: string;
 }
 
@@ -78,4 +80,12 @@ export interface Metrics {
   /** null mientras no haya ninguna respuesta con fecha. */
   median_days_to_first_response: number | null;
   funnel: FunnelStage[];
+}
+
+export interface OfferAnalysis {
+  tags: string[];
+  fit_summary: string;
+  strengths: string[];
+  gaps: string[];
+  seniority: string | null;
 }

@@ -4,6 +4,7 @@ import type {
   ApplicationFilters,
   ApplicationUpdate,
   Metrics,
+  OfferAnalysis,
   User,
 } from "./types";
 
@@ -86,6 +87,17 @@ export const api = {
     request<User>("/auth/me", {
       method: "PATCH",
       body: JSON.stringify({ stale_after_days: days }),
+    }),
+
+  updateProfile: (profile: string) =>
+    request<User>("/auth/me", { method: "PATCH", body: JSON.stringify({ profile }) }),
+
+  assistantStatus: () => request<{ available: boolean }>("/assistant/status"),
+
+  analyzeOffer: (offerText: string) =>
+    request<OfferAnalysis>("/assistant/analyze-offer", {
+      method: "POST",
+      body: JSON.stringify({ offer_text: offerText }),
     }),
 
   listApplications: (filters: ApplicationFilters = {}) => {

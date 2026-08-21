@@ -51,7 +51,10 @@ def me(user: CurrentUser) -> User:
 def update_me(body: UserUpdate, user: CurrentUser, session: SessionDep) -> User:
     """Solo toca preferencias. El email y el rol no se cambian por acá: el email es la
     identidad de login y el rol es justo lo que un usuario no debería poder subirse solo."""
-    user.stale_after_days = body.stale_after_days
+    # exclude_unset: es un PATCH. Sin esto, cambiar solo el umbral borraría el perfil.
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(user, field, value)
+
     session.add(user)
     session.commit()
     session.refresh(user)

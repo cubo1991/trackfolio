@@ -20,6 +20,8 @@ interface AuthState {
   logout: () => void;
   /** Cambia el umbral de alerta. Devuelve el usuario actualizado para que el tablero recargue. */
   setStaleThreshold: (days: number) => Promise<void>;
+  /** Guarda el perfil contra el que el asistente compara las ofertas. */
+  setProfile: (profile: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => {
@@ -65,6 +67,10 @@ export const useAuthStore = create<AuthState>((set) => {
 
     setStaleThreshold: async (days) => {
       set({ user: await api.updateStaleThreshold(days) });
+    },
+
+    setProfile: async (profile) => {
+      set({ user: await api.updateProfile(profile) });
     },
   };
 });

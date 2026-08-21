@@ -35,6 +35,9 @@ asistente con IA opcional para analizar ofertas.
   días configurable por usuario.
 - Reporte de conversión: tasa de respuesta, mediana de días a la primera respuesta y embudo
   aplicado → entrevista → oferta, calculado sobre el historial real de transiciones.
+- Asistente de ofertas (opcional): se pega el texto de una oferta y sugiere los tags de stack
+  detectados y qué tan bien encaja contra un perfil configurado. Requiere `ANTHROPIC_API_KEY`;
+  sin ella, la app funciona igual y la función simplemente no aparece.
 
 ## Cómo correrlo
 
@@ -88,3 +91,6 @@ npm test
 Copiar `backend/.env.example` a `backend/.env` y ajustar. Los valores por defecto apuntan al
 Postgres del `compose.yaml`, en el puerto 5435 para no chocar con instalaciones locales.
 `SECRET_KEY` tiene un valor de desarrollo que **hay que cambiar** antes de cualquier deploy.
+
+`ANTHROPIC_API_KEY` es opcional y solo habilita el asistente de ofertas. El resto de TrackFolio
+no depende de ella.
