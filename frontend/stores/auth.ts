@@ -18,6 +18,8 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  /** Cambia el umbral de alerta. Devuelve el usuario actualizado para que el tablero recargue. */
+  setStaleThreshold: (days: number) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => {
@@ -59,6 +61,10 @@ export const useAuthStore = create<AuthState>((set) => {
     logout: () => {
       tokenStorage.clear();
       set({ user: null, status: "anonymous" });
+    },
+
+    setStaleThreshold: async (days) => {
+      set({ user: await api.updateStaleThreshold(days) });
     },
   };
 });

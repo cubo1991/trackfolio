@@ -35,7 +35,7 @@ def list_applications(
     tag: Annotated[str | None, Query(description="Devuelve las que tengan este tag")] = None,
     date_from: Annotated[date | None, Query(description="Postuladas desde esta fecha")] = None,
     date_to: Annotated[date | None, Query(description="Postuladas hasta esta fecha")] = None,
-) -> list[Application]:
+) -> list[ApplicationRead]:
     """Todos los filtros son opcionales y se combinan con AND."""
     query = select(Application)
 
@@ -61,29 +61,38 @@ def list_applications(
     if tag:
         results = [item for item in results if tag in item.tags]
 
-    return results
+    # El umbral es el de quien pide la lista. Para un admin mirando postulaciones ajenas eso
+    # es una aproximación, pero un admin mirando el tablero de otro es un caso de soporte,
+    # no el uso normal.
+    now = utcnow()
+    return [
+        ApplicationRead.from_application(item, user.stale_after_days, now) for item in results
+    ]
 
 
 @router.post("", response_model=ApplicationRead, status_code=status.HTTP_201_CREATED)
 def create_application(
     body: ApplicationCreate, user: CurrentUser, session: SessionDep
-) -> Application:
+) -> ApplicationRead:
     application = Application(**body.model_dump(), user_id=user.id)
     session.add(application)
     session.commit()
     session.refresh(application)
-    return application
+    return ApplicationRead.from_application(application, user.stale_after_days)
 
 
 @router.get("/{application_id}", response_model=ApplicationRead)
-def get_application(application_id: int, user: CurrentUser, session: SessionDep) -> Application:
-    return _get_owned(application_id, user, session)
+def get_application(
+    application_id: int, user: CurrentUser, session: SessionDep
+) -> ApplicationRead:
+    application = _get_owned(application_id, user, session)
+    return ApplicationRead.from_application(application, user.stale_after_days)
 
 
 @router.patch("/{application_id}", response_model=ApplicationRead)
 def update_application(
     application_id: int, body: ApplicationUpdate, user: CurrentUser, session: SessionDep
-) -> Application:
+) -> ApplicationRead:
     application = _get_owned(application_id, user, session)
     changes = body.model_dump(exclude_unset=True)
 
@@ -104,7 +113,7 @@ def update_application(
     session.add(application)
     session.commit()
     session.refresh(application)
-    return application
+    return ApplicationRead.from_application(application, user.stale_after_days)
 
 
 @router.delete("/{application_id}", status_code=status.HTTP_204_NO_CONTENT)

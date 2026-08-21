@@ -22,8 +22,19 @@ export function ApplicationCard({ application, onEdit }: Props) {
         event.dataTransfer.setData("text/plain", String(application.id));
         event.dataTransfer.effectAllowed = "move";
       }}
-      className="cursor-grab rounded-md border border-slate-200 bg-white p-3 shadow-sm active:cursor-grabbing"
+      className={`cursor-grab rounded-md border bg-white p-3 shadow-sm active:cursor-grabbing ${
+        application.is_stale ? "border-amber-400" : "border-slate-200"
+      }`}
     >
+      {application.is_stale && (
+        // El ámbar no alcanza como única señal: quien no distingue colores tiene que poder
+        // leer la alerta igual, y el texto además dice cuántos días.
+        <p className="mb-2 flex items-center gap-1 text-xs font-medium text-amber-700">
+          <span aria-hidden="true">⏳</span>
+          Sin movimiento hace {application.days_inactive} días
+        </p>
+      )}
+
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-sm font-semibold text-slate-900">{application.company}</h3>
         <button

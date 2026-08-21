@@ -14,6 +14,16 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def as_utc(value: datetime) -> datetime:
+    """Normaliza a UTC con zona horaria.
+
+    Postgres devuelve los TIMESTAMPTZ con zona; SQLite los devuelve naive aunque la columna se
+    declare `timezone=True`, porque no tiene tipo de fecha propio. Restar uno naive contra un
+    `utcnow()` aware explota, así que todo lo que haga aritmética de fechas pasa por acá.
+    """
+    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
+
 def utc_column() -> Column:
     """Columna de fecha con zona horaria. Por defecto SQLAlchemy usa TIMESTAMP WITHOUT TIME ZONE
     y devuelve datetimes naive: restarlos contra un `utcnow()` aware explota, y eso es
@@ -34,11 +44,20 @@ class Status(str, Enum):
     offer = "offer"
 
 
+# Una postulación rechazada o con oferta ya terminó su recorrido: no tiene sentido avisar que
+# "hace 40 días que no se mueve". Las alertas solo miran las que siguen vivas.
+TERMINAL_STATUSES = {Status.rejected, Status.offer}
+
+
 class User(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     email: str = Field(unique=True, index=True)
     hashed_password: str
     role: Role = Field(default=Role.user)
+    # Días sin movimiento a partir de los cuales una postulación se marca como estancada.
+    # Por usuario: quien aplica a 5 puestos por semana no tiene el mismo ritmo que quien
+    # aplica a 5 por mes.
+    stale_after_days: int = Field(default=14)
     created_at: datetime = Field(default_factory=utcnow, sa_column=utc_column())
 
 

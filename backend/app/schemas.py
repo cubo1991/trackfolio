@@ -3,7 +3,7 @@ from datetime import date, datetime
 from pydantic import BaseModel, EmailStr, Field
 
 from app.auth import MAX_PASSWORD_BYTES
-from app.models import Role, Status
+from app.models import TERMINAL_STATUSES, Application, Role, Status, as_utc, utcnow
 
 
 class Credentials(BaseModel):
@@ -22,7 +22,15 @@ class UserRead(BaseModel):
     id: int
     email: EmailStr
     role: Role
+    stale_after_days: int
     created_at: datetime
+
+
+class UserUpdate(BaseModel):
+    """Preferencias del usuario. El tope de un año no es capricho: más allá de eso el umbral
+    deja de ser una alerta y esconde un valor sin sentido (o negativo, que marcaría todo)."""
+
+    stale_after_days: int = Field(ge=1, le=365)
 
 
 class ApplicationCreate(BaseModel):
@@ -59,3 +67,26 @@ class ApplicationRead(BaseModel):
     tags: list[str]
     created_at: datetime
     updated_at: datetime
+
+    # Campos derivados: no están en la tabla, se calculan al leer. No se guardan porque
+    # dependen del día de hoy, y un valor guardado quedaría viejo al día siguiente sin que
+    # nadie toque la postulación.
+    days_inactive: int
+    is_stale: bool
+
+    @classmethod
+    def from_application(
+        cls, application: Application, stale_after_days: int, now: datetime | None = None
+    ) -> "ApplicationRead":
+        """`now` es un parámetro y no `utcnow()` adentro para poder fijar el día en los tests
+        sin tener que parchear el reloj."""
+        now = now or utcnow()
+        days_inactive = (now - as_utc(application.updated_at)).days
+        return cls(
+            **application.model_dump(),
+            days_inactive=days_inactive,
+            is_stale=(
+                application.status not in TERMINAL_STATUSES
+                and days_inactive >= stale_after_days
+            ),
+        )

@@ -3,10 +3,10 @@
 Tracker de postulaciones laborales con pipeline visual tipo Kanban, métricas de conversión y un
 asistente con IA opcional para analizar ofertas.
 
-> **Estado:** en desarrollo. El pipeline Kanban ya es usable de punta a punta: crear, editar,
-> filtrar y mover postulaciones entre columnas. Faltan los tests de frontend para cerrar el MVP.
-> El plan completo y el razonamiento detrás de cada decisión técnica están en
-> [ROADMAP.md](ROADMAP.md).
+> **Estado:** en desarrollo. La Fase 1 (MVP) está cerrada y la Fase 2 en curso: el pipeline es
+> usable de punta a punta y ya avisa de las postulaciones frenadas. Faltan el dashboard de
+> métricas, el asistente de IA y el deploy. El plan completo y el razonamiento detrás de cada
+> decisión técnica están en [ROADMAP.md](ROADMAP.md).
 
 ## Stack
 
@@ -31,6 +31,8 @@ asistente con IA opcional para analizar ofertas.
 - Filtros combinables por empresa, estado, tag y rango de fechas, resueltos en el servidor.
 - 15 tests de Jest sobre la lógica del tablero, con el módulo de la API mockeado para poder
   forzar los fallos: el optimistic update, el rollback y el borrado que se revierte.
+- Alertas de seguimiento: las postulaciones sin movimiento aparecen marcadas, con el umbral de
+  días configurable por usuario.
 
 ## Cómo correrlo
 

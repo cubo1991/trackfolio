@@ -26,6 +26,7 @@ export interface User {
   id: number;
   email: string;
   role: Role;
+  stale_after_days: number;
   created_at: string;
 }
 
@@ -42,11 +43,15 @@ export interface Application {
   tags: string[];
   created_at: string;
   updated_at: string;
+  /** Días desde el último movimiento. Lo calcula el backend al leer, no está guardado. */
+  days_inactive: number;
+  /** True cuando supera el umbral del usuario y la postulación sigue viva. */
+  is_stale: boolean;
 }
 
 export type ApplicationCreate = Omit<
   Application,
-  "id" | "user_id" | "created_at" | "updated_at"
+  "id" | "user_id" | "created_at" | "updated_at" | "days_inactive" | "is_stale"
 >;
 
 export type ApplicationUpdate = Partial<ApplicationCreate>;

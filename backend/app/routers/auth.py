@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 from app.auth import CurrentUser, create_access_token, hash_password, verify_password
 from app.database import get_session
 from app.models import User
-from app.schemas import Credentials, Token, UserRead
+from app.schemas import Credentials, Token, UserRead, UserUpdate
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -44,4 +44,15 @@ def login(body: Credentials, session: SessionDep) -> Token:
 
 @router.get("/me", response_model=UserRead)
 def me(user: CurrentUser) -> User:
+    return user
+
+
+@router.patch("/me", response_model=UserRead)
+def update_me(body: UserUpdate, user: CurrentUser, session: SessionDep) -> User:
+    """Solo toca preferencias. El email y el rol no se cambian por acá: el email es la
+    identidad de login y el rol es justo lo que un usuario no debería poder subirse solo."""
+    user.stale_after_days = body.stale_after_days
+    session.add(user)
+    session.commit()
+    session.refresh(user)
     return user

@@ -79,6 +79,12 @@ export const api = {
 
   me: () => request<User>("/auth/me"),
 
+  updateStaleThreshold: (days: number) =>
+    request<User>("/auth/me", {
+      method: "PATCH",
+      body: JSON.stringify({ stale_after_days: days }),
+    }),
+
   listApplications: (filters: ApplicationFilters = {}) => {
     // Los vacíos se descartan: mandar `company=` filtraría por cadena vacía en vez de no filtrar.
     const params = new URLSearchParams(

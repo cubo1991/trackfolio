@@ -205,6 +205,24 @@ Se van completando a medida que se toman. Las de arranque:
   "globant" en la búsqueda dispara siete requests. Con 250 ms de espera dispara uno, y el mismo
   efecto cubre la carga al abrir el tablero sin necesitar un camino aparte.
 
+- **Las alertas se calculan al leer, no se guardan.** Un `is_stale` guardado quedaría viejo al día
+  siguiente sin que nadie toque la postulación, y mantenerlo al día pediría una tarea programada
+  para algo que es una resta de fechas. Se calcula en `ApplicationRead.from_application`, que
+  recibe el `now` por parámetro para poder fijar el día en los tests sin parchear el reloj.
+
+- **Los estados terminales nunca se marcan.** Avisar que una postulación rechazada hace un año
+  "no se mueve" llena el tablero de alertas que no accionan nada. La alerta sirve solo si implica
+  hacer algo, y sobre una rechazada no hay nada que hacer.
+
+- **El umbral es por usuario, no una constante.** Quien aplica a cinco puestos por semana no tiene
+  el mismo ritmo que quien aplica a cinco por mes. Se valida entre 1 y 365: en 0 marcaría todo y
+  en mil días no marcaría nunca.
+
+- **`as_utc()` para toda la aritmética de fechas.** Postgres devuelve los `TIMESTAMPTZ` con zona
+  horaria y SQLite los devuelve naive aunque la columna se declare `timezone=True`. Restar uno
+  contra otro explota, y explotó: los tests de esta etapa lo destaparon. Se normaliza en un solo
+  lugar por donde pasan todos los cálculos, en vez de parchear cada resta.
+
 - **Jest solo sobre la lógica del store.** Es lógica pura, sin DOM: alto valor por test y no se
   rompe cuando cambia el markup. Los tests de render con Testing Library se agregan si aparece un
   componente con lógica propia que valga la pena fijar. Por lo mismo el entorno es `node` y no
