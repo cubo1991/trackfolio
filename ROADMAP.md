@@ -153,6 +153,27 @@ Se van completando a medida que se toman. Las de arranque:
   Mensajes distintos permiten enumerar qué emails están registrados; tiempos distintos también,
   así que contra un email inexistente igual se verifica contra un hash descartable.
 
+- **El token va en `localStorage`, no en una cookie httpOnly.** Una cookie httpOnly no es
+  legible por JavaScript y por lo tanto un XSS no la puede robar, que es la opción más segura.
+  No se usa acá porque el front y la API viven en dominios distintos: haría falta `SameSite=None`
+  con `Secure` más protección CSRF propia. Es mucha maquinaria para una app de un solo usuario,
+  pero es la primera decisión a revisar si esto alguna vez guarda datos de terceros.
+
+- **El guard de rutas es de cliente y no protege nada.** Solo evita mostrar una pantalla vacía
+  mientras se redirige. Lo que protege los datos es que la API rechaza todo request sin token
+  válido; el frontend no es una frontera de seguridad y no conviene escribirlo como si lo fuera.
+
+- **Tres estados de sesión (`loading` / `authenticated` / `anonymous`), no un booleano.** Al
+  montar la app todavía no se sabe si el token guardado sirve. Tratar esa incertidumbre como "no
+  autenticado" hace que la app patee al login por un instante en cada refresh.
+
+- **Los tipos del frontend son un espejo escrito a mano de los esquemas del backend.** Generarlos
+  desde el OpenAPI agregaría un paso de build para ahorrar unas treinta líneas que casi no
+  cambian. Si el modelo empieza a moverse seguido, ahí conviene generar.
+
+- **CORS con lista explícita de orígenes, no `*`.** Con `allow_credentials` el comodín ni
+  siquiera es válido, y en producción va a ser el dominio del front y nada más.
+
 - **Jest solo sobre la lógica del store.** Es lógica pura, sin DOM: alto valor por test y no se
   rompe cuando cambia el markup. Los tests de render con Testing Library se agregan si aparece un
   componente con lógica propia que valga la pena fijar.

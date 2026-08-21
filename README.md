@@ -3,9 +3,9 @@
 Tracker de postulaciones laborales con pipeline visual tipo Kanban, métricas de conversión y un
 asistente con IA opcional para analizar ofertas.
 
-> **Estado:** en desarrollo. El backend de la Fase 1 está funcionando y testeado; el frontend
-> todavía no arrancó. El plan completo y el razonamiento detrás de cada decisión técnica están
-> en [ROADMAP.md](ROADMAP.md).
+> **Estado:** en desarrollo. El backend de la Fase 1 está funcionando y testeado, y el frontend
+> ya tiene login y el layout del tablero; falta el drag & drop. El plan completo y el
+> razonamiento detrás de cada decisión técnica están en [ROADMAP.md](ROADMAP.md).
 
 ## Stack
 
@@ -23,6 +23,8 @@ asistente con IA opcional para analizar ofertas.
 - CRUD de postulaciones con aislamiento por usuario.
 - 19 tests sobre los casos que importan: los de auth que tienen que fallar, el aislamiento entre
   usuarios y el registro del historial de estados.
+- Frontend con login y registro, sesión persistente y guard de rutas, más el layout de las cinco
+  columnas del pipeline.
 
 ## Cómo correrlo
 
@@ -55,6 +57,15 @@ Los tests no necesitan Docker ni el servidor prendido:
 ```bash
 .venv/Scripts/python.exe -m pytest -v
 ```
+
+Y el frontend, desde `frontend/`:
+
+```bash
+npm install && npm run dev
+```
+
+Queda en http://localhost:3000. Necesita la API levantada; apunta a `http://127.0.0.1:8000` salvo
+que definas `NEXT_PUBLIC_API_URL`.
 
 ## Configuración
 

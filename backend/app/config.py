@@ -15,5 +15,9 @@ class Settings(BaseSettings):
 
     access_token_expire_minutes: int = 60 * 24
 
+    # Orígenes autorizados a llamar la API desde el navegador. En producción se sobreescribe
+    # por entorno con el dominio del frontend.
+    cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+
 
 settings = Settings()
