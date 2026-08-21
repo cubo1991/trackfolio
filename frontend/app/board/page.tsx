@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 
 import { ApplicationForm } from "@/components/ApplicationForm";
 import { AuthGuard } from "@/components/AuthGuard";
-import { Column } from "@/components/Column";
+import { Bay } from "@/components/Bay";
 import { FilterBar } from "@/components/FilterBar";
+import { IconClose, IconPlus, IconSignOut } from "@/components/icons";
+import { PRODUCT_NAME } from "@/lib/brand";
 import { STATUSES, type Application } from "@/lib/types";
 import { useAuthStore } from "@/stores/auth";
 import { groupByStatus, useBoardStore } from "@/stores/board";
@@ -33,21 +35,53 @@ function Board() {
 
   const grouped = groupByStatus(applications);
   const editing = formTarget !== null && formTarget !== "new" ? formTarget : null;
+  const marcadas = applications.filter((application) => application.is_stale).length;
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
-        <h1 className="text-lg font-semibold text-slate-900">TrackFolio</h1>
-        <div className="flex items-center gap-4 text-sm">
+    <main className="flex h-screen flex-col overflow-hidden">
+      <header className="rail flex items-center gap-4 px-4 py-2">
+        <h1 className="font-mono text-xs uppercase tracking-[0.2em] text-label">
+          {PRODUCT_NAME}
+        </h1>
+
+        {/* Lo que el usuario vino a saber, antes que cualquier control: cuántas piden acción. */}
+        <p className="font-mono text-xs text-label-soft">
+          <data value={applications.length} className="text-label">
+            {applications.length}
+          </data>{" "}
+          en tablero
+          {marcadas > 0 && (
+            <>
+              {" · "}
+              <data value={marcadas} className="text-pen-lit">
+                {marcadas}
+              </data>{" "}
+              sin movimiento
+            </>
+          )}
+        </p>
+
+        <div className="ml-auto flex items-center gap-3">
           <button
             onClick={() => setFormTarget("new")}
-            className="rounded-md bg-slate-900 px-3 py-1.5 font-medium text-white hover:bg-slate-700"
+            className="flex items-center gap-1.5 bg-live px-2.5 py-1 font-mono text-xs
+              font-medium uppercase tracking-wider text-ink transition-colors
+              hover:bg-live/85"
           >
-            Nueva postulación
+            <IconPlus className="h-3.5 w-3.5" />
+            Cargar
           </button>
-          <span className="text-slate-500">{user?.email}</span>
-          <button onClick={logout} className="text-slate-500 hover:text-slate-900">
-            Salir
+
+          <span className="hidden font-mono text-[0.6875rem] text-label-soft sm:inline">
+            {user?.email}
+          </span>
+
+          <button
+            onClick={logout}
+            className="text-label-soft transition-colors hover:text-label"
+            aria-label="Cerrar sesión"
+          >
+            <IconSignOut className="h-4 w-4" />
           </button>
         </div>
       </header>
@@ -57,27 +91,37 @@ function Board() {
       {error && (
         <div
           role="alert"
-          className="flex items-center justify-between bg-red-50 px-6 py-2 text-sm text-red-700"
+          className="flex items-center justify-between gap-3 border-y border-pen-lit/50
+            bg-pen/15 px-4 py-1.5 font-mono text-xs text-stock"
         >
           {error}
-          <button onClick={dismissError} aria-label="Cerrar aviso" className="font-medium">
-            ✕
+          <button
+            onClick={dismissError}
+            aria-label="Descartar aviso"
+            className="text-stock/70 transition-colors hover:text-stock"
+          >
+            <IconClose className="h-3.5 w-3.5" />
           </button>
         </div>
       )}
 
       {loading && applications.length === 0 ? (
-        <p className="p-6 text-slate-500">Cargando postulaciones…</p>
+        <p className="p-4 font-mono text-xs text-label-soft">Leyendo el tablero…</p>
       ) : (
-        <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 lg:grid-cols-5">
+        <div
+          className="grid min-h-0 flex-1 gap-px overflow-x-auto bg-rail-edge
+            grid-cols-[repeat(5,minmax(13rem,1fr))]"
+        >
           {STATUSES.map((status) => (
-            <Column
-              key={status}
-              status={status}
-              applications={grouped[status] ?? []}
-              onDropCard={move}
-              onEdit={setFormTarget}
-            />
+            <div key={status} className="flex min-h-0 flex-col overflow-y-auto">
+              <Bay
+                status={status}
+                applications={grouped[status] ?? []}
+                onDropStrip={move}
+                onMove={move}
+                onEdit={setFormTarget}
+              />
+            </div>
           ))}
         </div>
       )}

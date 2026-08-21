@@ -1,35 +1,43 @@
 "use client";
 
+import { IconSearch } from "@/components/icons";
 import { STATUSES, STATUS_LABELS, type Status } from "@/lib/types";
 import { useAuthStore } from "@/stores/auth";
 import { useBoardStore } from "@/stores/board";
+
+const FIELD =
+  "h-7 rounded-none border border-rail-edge bg-console px-2 font-mono text-xs text-label " +
+  "transition-colors hover:border-label-soft focus:border-live focus:outline-none";
 
 export function FilterBar() {
   const filters = useBoardStore((state) => state.filters);
   const setFilter = useBoardStore((state) => state.setFilter);
   const clearFilters = useBoardStore((state) => state.clearFilters);
 
-  const hayFiltros = Object.values(filters).some(Boolean);
+  const activos = Object.values(filters).filter(Boolean).length;
 
   return (
-    <div className="flex flex-wrap items-end gap-3 border-b border-slate-200 bg-white px-6 py-3">
+    <div className="rail flex flex-wrap items-end gap-x-3 gap-y-2 px-4 py-2">
       <Field label="Empresa">
-        <input
-          type="search"
-          value={filters.company ?? ""}
-          onChange={(event) => setFilter("company", event.target.value)}
-          placeholder="Buscar…"
-          className={inputClass}
-        />
+        <span className="relative flex items-center">
+          <IconSearch className="pointer-events-none absolute left-2 h-3.5 w-3.5 text-label-soft" />
+          <input
+            type="search"
+            value={filters.company ?? ""}
+            onChange={(event) => setFilter("company", event.target.value)}
+            placeholder="buscar"
+            className={`${FIELD} w-36 pl-7`}
+          />
+        </span>
       </Field>
 
-      <Field label="Estado">
+      <Field label="Bahía">
         <select
           value={filters.status ?? ""}
           onChange={(event) => setFilter("status", event.target.value as Status | "")}
-          className={inputClass}
+          className={`${FIELD} w-32`}
         >
-          <option value="">Todos</option>
+          <option value="">todas</option>
           {STATUSES.map((status) => (
             <option key={status} value={status}>
               {STATUS_LABELS[status]}
@@ -43,8 +51,8 @@ export function FilterBar() {
           type="search"
           value={filters.tag ?? ""}
           onChange={(event) => setFilter("tag", event.target.value)}
-          placeholder="react, python…"
-          className={inputClass}
+          placeholder="react"
+          className={`${FIELD} w-28`}
         />
       </Field>
 
@@ -53,7 +61,7 @@ export function FilterBar() {
           type="date"
           value={filters.date_from ?? ""}
           onChange={(event) => setFilter("date_from", event.target.value)}
-          className={inputClass}
+          className={`${FIELD} w-32`}
         />
       </Field>
 
@@ -62,16 +70,17 @@ export function FilterBar() {
           type="date"
           value={filters.date_to ?? ""}
           onChange={(event) => setFilter("date_to", event.target.value)}
-          className={inputClass}
+          className={`${FIELD} w-32`}
         />
       </Field>
 
-      {hayFiltros && (
+      {activos > 0 && (
         <button
           onClick={clearFilters}
-          className="pb-2 text-sm text-slate-500 hover:text-slate-900"
+          className="h-7 px-1 font-mono text-xs text-live underline decoration-live/40
+            hover:decoration-live"
         >
-          Limpiar
+          limpiar ({activos})
         </button>
       )}
 
@@ -80,8 +89,8 @@ export function FilterBar() {
   );
 }
 
-/** Umbral de la alerta de estancamiento. Va acá y no en una pantalla de ajustes aparte:
- *  es la única preferencia que hay, y se entiende mejor al lado de lo que afecta. */
+/** Umbral de la marca de atención. Vive en el riel, junto a lo que afecta: es la única
+ *  preferencia del producto y una pantalla de ajustes propia sería más chrome que ajuste. */
 function StaleThreshold() {
   const user = useAuthStore((state) => state.user);
   const setStaleThreshold = useAuthStore((state) => state.setStaleThreshold);
@@ -90,9 +99,8 @@ function StaleThreshold() {
   if (!user) return null;
 
   return (
-    <label className="ml-auto flex flex-col gap-1">
-      <span className="text-xs font-medium text-slate-500">Avisar tras</span>
-      <span className="flex items-center gap-1.5">
+    <Field label="Marcar tras" className="ml-auto">
+      <span className="flex items-baseline gap-1.5">
         <input
           type="number"
           min={1}
@@ -106,21 +114,28 @@ function StaleThreshold() {
             await setStaleThreshold(days);
             await load();
           }}
-          className={`${inputClass} w-16`}
+          className={`${FIELD} w-14 text-right tabular-nums`}
         />
-        <span className="text-sm text-slate-500">días</span>
+        <span className="font-mono text-[0.6875rem] text-label-soft">días</span>
       </span>
-    </label>
+    </Field>
   );
 }
 
-const inputClass =
-  "rounded-md border border-slate-300 px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-slate-900";
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+  className = "",
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="text-xs font-medium text-slate-500">{label}</span>
+    <label className={`flex flex-col gap-1 ${className}`}>
+      <span className="font-mono text-[0.625rem] uppercase tracking-[0.12em] text-label-soft">
+        {label}
+      </span>
       {children}
     </label>
   );

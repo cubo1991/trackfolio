@@ -4,7 +4,12 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { ApiError } from "@/lib/api";
+import { PRODUCT_NAME, PRODUCT_TAGLINE } from "@/lib/brand";
 import { useAuthStore } from "@/stores/auth";
+
+const FIELD =
+  "w-full rounded-none border border-ink/25 bg-transparent px-2.5 py-2 text-ink " +
+  "transition-colors focus:border-ink focus:outline-none";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,69 +44,88 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
+    <main className="flex min-h-screen items-center justify-center p-4">
+      {/* Una sola tira apoyada en la consola apagada: la que se firma al tomar la posición. */}
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-slate-200 bg-white p-8 shadow-sm"
+        className="stock w-full max-w-sm text-ink shadow-[0_12px_40px_rgb(0_0_0/0.55)]"
       >
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">TrackFolio</h1>
-          <p className="text-sm text-slate-500">
-            {isRegistering ? "Creá tu cuenta." : "Entrá para ver tu pipeline."}
-          </p>
+        <header className="border-b border-ink/20 px-6 pb-3 pt-5">
+          <h1 className="font-mono text-xs uppercase tracking-[0.2em]">{PRODUCT_NAME}</h1>
+          <p className="mt-0.5 text-[0.8125rem] text-ink-soft">{PRODUCT_TAGLINE}</p>
+        </header>
+
+        <div className="space-y-4 px-6 py-5">
+          <label className="block space-y-1">
+            <span className="font-mono text-[0.625rem] uppercase tracking-[0.14em] text-ink-soft">
+              Email
+            </span>
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className={FIELD}
+            />
+          </label>
+
+          <label className="block space-y-1">
+            <span className="font-mono text-[0.625rem] uppercase tracking-[0.14em] text-ink-soft">
+              Contraseña
+            </span>
+            <input
+              type="password"
+              required
+              // Mismo mínimo que valida el backend: mejor avisar acá que ir y volver.
+              minLength={8}
+              autoComplete={isRegistering ? "new-password" : "current-password"}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className={FIELD}
+            />
+            {isRegistering && (
+              <span className="block text-[0.6875rem] text-ink-soft">Mínimo 8 caracteres.</span>
+            )}
+          </label>
+
+          {error && (
+            <p
+              role="alert"
+              className="border-l-2 border-pen bg-pen/10 px-3 py-2 text-sm text-pen"
+            >
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full bg-ink py-2.5 font-mono text-xs font-medium uppercase
+              tracking-[0.14em] text-stock transition-opacity hover:opacity-85
+              disabled:opacity-50"
+          >
+            {submitting
+              ? "Verificando…"
+              : isRegistering
+                ? "Crear cuenta"
+                : "Entrar"}
+          </button>
         </div>
 
-        <label className="block space-y-1">
-          <span className="text-sm font-medium text-slate-700">Email</span>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 outline-none focus:border-slate-900"
-          />
-        </label>
-
-        <label className="block space-y-1">
-          <span className="text-sm font-medium text-slate-700">Contraseña</span>
-          <input
-            type="password"
-            required
-            // Mismo mínimo que valida el backend: mejor avisar acá que ir y volver.
-            minLength={8}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 outline-none focus:border-slate-900"
-          />
-          {isRegistering && (
-            <span className="text-xs text-slate-500">Mínimo 8 caracteres.</span>
-          )}
-        </label>
-
-        {error && (
-          <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </p>
-        )}
-
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded-md bg-slate-900 py-2 font-medium text-white hover:bg-slate-700 disabled:opacity-50"
-        >
-          {submitting ? "Entrando…" : isRegistering ? "Crear cuenta" : "Entrar"}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setIsRegistering((value) => !value);
-            setError(null);
-          }}
-          className="w-full text-sm text-slate-500 hover:text-slate-900"
-        >
-          {isRegistering ? "Ya tengo cuenta" : "No tengo cuenta"}
-        </button>
+        <footer className="border-t border-ink/20 px-6 py-3">
+          <button
+            type="button"
+            onClick={() => {
+              setIsRegistering((value) => !value);
+              setError(null);
+            }}
+            className="font-mono text-[0.6875rem] text-ink-soft underline
+              decoration-ink-soft/40 transition-colors hover:text-ink hover:decoration-ink"
+          >
+            {isRegistering ? "Ya tengo cuenta" : "Crear una cuenta"}
+          </button>
+        </footer>
       </form>
     </main>
   );

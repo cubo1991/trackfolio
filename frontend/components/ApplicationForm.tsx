@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { IconClose } from "@/components/icons";
 import { ApiError } from "@/lib/api";
 import { STATUSES, STATUS_LABELS, type Application, type ApplicationCreate } from "@/lib/types";
 
@@ -15,6 +16,14 @@ interface Props {
 
 const hoy = () => new Date().toISOString().slice(0, 10);
 
+const FIELD =
+  "w-full rounded-none border border-ink/25 bg-transparent px-2 py-1.5 text-sm text-ink " +
+  "transition-colors placeholder:text-ink-soft/60 focus:border-ink focus:outline-none";
+
+/**
+ * La tira sacada de la bahía y apoyada en el escritorio para anotarla. Panel lateral y no modal
+ * centrado: el tablero sigue visible detrás, que es el contexto de lo que se está anotando.
+ */
 export function ApplicationForm({ application, onSubmit, onDelete, onClose }: Props) {
   const [company, setCompany] = useState(application?.company ?? "");
   const [position, setPosition] = useState(application?.position ?? "");
@@ -26,6 +35,20 @@ export function ApplicationForm({ application, onSubmit, onDelete, onClose }: Pr
 
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  const firstField = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    firstField.current?.focus();
+  }, []);
+
+  // Escape cierra: en un panel que se abre sobre el trabajo, salir tiene que costar una tecla.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -53,144 +76,177 @@ export function ApplicationForm({ application, onSubmit, onDelete, onClose }: Pr
 
   return (
     <div
-      className="fixed inset-0 z-10 flex items-center justify-center bg-slate-900/40 p-4"
+      className="fixed inset-0 z-20 flex justify-end bg-console/70 backdrop-blur-[1px]"
       onClick={onClose}
     >
       <form
         onSubmit={handleSubmit}
         onClick={(event) => event.stopPropagation()}
-        className="max-h-full w-full max-w-md space-y-3 overflow-y-auto rounded-lg bg-white p-6 shadow-lg"
+        role="dialog"
+        aria-modal="true"
+        aria-label={application ? "Editar postulación" : "Nueva postulación"}
+        className="stock flex h-full w-full max-w-sm flex-col overflow-y-auto text-ink
+          shadow-[-8px_0_24px_rgb(0_0_0/0.5)]
+          motion-safe:animate-[slide-in_180ms_cubic-bezier(0.16,1,0.3,1)]"
       >
-        <h2 className="text-lg font-semibold text-slate-900">
-          {application ? "Editar postulación" : "Nueva postulación"}
-        </h2>
+        <header className="flex items-center justify-between border-b border-ink/20 px-4 py-2.5">
+          <h2 className="font-mono text-[0.6875rem] uppercase tracking-[0.16em]">
+            {application ? `Tira ${String(application.id).padStart(4, "0")}` : "Tira en blanco"}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="text-ink-soft transition-colors hover:text-ink"
+          >
+            <IconClose className="h-4 w-4" />
+          </button>
+        </header>
 
-        <Field label="Empresa">
-          <input
-            required
-            value={company}
-            onChange={(event) => setCompany(event.target.value)}
-            className={inputClass}
-          />
-        </Field>
-
-        <Field label="Puesto">
-          <input
-            required
-            value={position}
-            onChange={(event) => setPosition(event.target.value)}
-            className={inputClass}
-          />
-        </Field>
-
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Fecha">
-            {/* Input de fecha nativo: da el calendario y la validación del navegador gratis. */}
+        <div className="flex-1 space-y-3 px-4 py-4">
+          <Field label="Empresa">
             <input
-              type="date"
+              ref={firstField}
               required
-              value={appliedDate}
-              onChange={(event) => setAppliedDate(event.target.value)}
-              className={inputClass}
+              value={company}
+              onChange={(event) => setCompany(event.target.value)}
+              className={FIELD}
             />
           </Field>
 
-          <Field label="Estado">
-            <select
-              value={status}
-              onChange={(event) => setStatus(event.target.value as typeof status)}
-              className={inputClass}
-            >
-              {STATUSES.map((option) => (
-                <option key={option} value={option}>
-                  {STATUS_LABELS[option]}
-                </option>
-              ))}
-            </select>
+          <Field label="Puesto">
+            <input
+              required
+              value={position}
+              onChange={(event) => setPosition(event.target.value)}
+              className={FIELD}
+            />
           </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Fecha">
+              {/* Input de fecha nativo: da el calendario y la validación del navegador gratis. */}
+              <input
+                type="date"
+                required
+                value={appliedDate}
+                onChange={(event) => setAppliedDate(event.target.value)}
+                className={`${FIELD} font-mono text-xs`}
+              />
+            </Field>
+
+            <Field label="Bahía">
+              <select
+                value={status}
+                onChange={(event) => setStatus(event.target.value as typeof status)}
+                className={`${FIELD} text-xs`}
+              >
+                {STATUSES.map((option) => (
+                  <option key={option} value={option}>
+                    {STATUS_LABELS[option]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          <Field label="Link a la oferta">
+            <input
+              type="url"
+              value={url}
+              onChange={(event) => setUrl(event.target.value)}
+              placeholder="https://…"
+              className={`${FIELD} font-mono text-xs`}
+            />
+          </Field>
+
+          <Field label="Tags" hint="Separados por coma.">
+            <input
+              value={tags}
+              onChange={(event) => setTags(event.target.value)}
+              placeholder="python, fastapi, remoto"
+              className={`${FIELD} font-mono text-xs`}
+            />
+          </Field>
+
+          <Field label="Notas">
+            <textarea
+              rows={5}
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="Contacto, salario conversado, próximos pasos…"
+              className={`${FIELD} resize-none`}
+            />
+          </Field>
+
+          {error && (
+            <p
+              role="alert"
+              className="border-l-2 border-pen bg-pen/10 px-3 py-2 text-sm text-pen"
+            >
+              {error}
+            </p>
+          )}
         </div>
 
-        <Field label="Link a la oferta">
-          <input
-            type="url"
-            value={url}
-            onChange={(event) => setUrl(event.target.value)}
-            placeholder="https://…"
-            className={inputClass}
-          />
-        </Field>
+        <footer className="sticky bottom-0 flex items-center gap-2 border-t border-ink/20 bg-stock px-4 py-3">
+          <button
+            type="submit"
+            disabled={submitting}
+            className="bg-ink px-4 py-1.5 font-mono text-xs font-medium uppercase tracking-wider
+              text-stock transition-opacity hover:opacity-85 disabled:opacity-50"
+          >
+            {submitting ? "Guardando…" : application ? "Guardar" : "Cargar"}
+          </button>
 
-        <Field label="Tags">
-          <input
-            value={tags}
-            onChange={(event) => setTags(event.target.value)}
-            placeholder="python, fastapi, remoto"
-            className={inputClass}
-          />
-          <span className="text-xs text-slate-500">Separados por coma.</span>
-        </Field>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-2 py-1.5 font-mono text-xs uppercase tracking-wider text-ink-soft
+              transition-colors hover:text-ink"
+          >
+            Cancelar
+          </button>
 
-        <Field label="Notas">
-          <textarea
-            rows={3}
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-            className={inputClass}
-          />
-        </Field>
-
-        {error && (
-          <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </p>
-        )}
-
-        <div className="flex items-center justify-between gap-2 pt-2">
-          {onDelete ? (
+          {onDelete && (
             <button
               type="button"
               onClick={async () => {
+                // Dos toques y sin modal encima de un panel: el botón se convierte en su
+                // propia confirmación.
+                if (!confirmingDelete) return setConfirmingDelete(true);
                 await onDelete();
                 onClose();
               }}
-              className="text-sm text-red-600 hover:text-red-800"
+              onBlur={() => setConfirmingDelete(false)}
+              className="ml-auto font-mono text-xs uppercase tracking-wider text-pen
+                transition-colors hover:text-pen/80"
             >
-              Borrar
+              {confirmingDelete ? "¿Seguro?" : "Descartar"}
             </button>
-          ) : (
-            <span />
           )}
-
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md px-4 py-2 text-sm text-slate-600 hover:bg-slate-100"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
-            >
-              {submitting ? "Guardando…" : "Guardar"}
-            </button>
-          </div>
-        </div>
+        </footer>
       </form>
     </div>
   );
 }
 
-const inputClass =
-  "w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-900";
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block space-y-1">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+      <span className="font-mono text-[0.625rem] uppercase tracking-[0.14em] text-ink-soft">
+        {label}
+      </span>
       {children}
+      {hint && <span className="block text-[0.6875rem] text-ink-soft">{hint}</span>}
     </label>
   );
 }

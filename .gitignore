@@ -19,3 +19,6 @@ coverage/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Log efimero de las paginas de decision de impeccable
+.impeccable/questions/
