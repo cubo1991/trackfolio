@@ -223,6 +223,29 @@ Se van completando a medida que se toman. Las de arranque:
   contra otro explota, y explotó: los tests de esta etapa lo destaparon. Se normaliza en un solo
   lugar por donde pasan todos los cálculos, en vez de parchear cada resta.
 
+- **La mediana y no la media para el tiempo a primera respuesta.** Una sola empresa que contesta
+  a los noventa días corre la media lo suficiente como para que deje de describir a ninguna
+  postulación real: con 2, 4, 6 y 90 días la media da 25 y la mediana da 5. La mediana responde
+  la pregunta que el usuario tiene en la cabeza, que es qué pasa en la mitad de los casos.
+
+- **El embudo se calcula sobre el historial, no sobre el estado actual.** Una postulación
+  rechazada hoy que pasó por una entrevista tiene que contar en la etapa de entrevista; mirar
+  solo dónde está hoy borraría la mitad del recorrido. Esta es la razón por la que `StatusChange`
+  se escribe desde la Etapa 1.
+
+- **Un rechazo cuenta como respuesta.** Contarlo como silencio inflaría la tasa justo en las
+  búsquedas donde peor te trataron. Y sin respuestas todavía, el tiempo mediano es `null` y no
+  cero: un cero diría "contestan al toque", que es lo contrario de lo que pasa.
+
+- **Las métricas ignoran los filtros del tablero.** Una tasa de respuesta calculada sobre un
+  subconjunto filtrado se lee como si fuera la global y engaña. Si alguna vez hace falta
+  segmentar, va a tener que decir en pantalla sobre qué se calculó.
+
+- **El embudo es una rampa ordinal de un solo tono, no colores categóricos.** Las etapas están
+  ordenadas —postularse viene antes que entrevistar— y colores distintos sugerirían que son cosas
+  distintas en vez de momentos del mismo recorrido. La rampa se validó con el script de la guía
+  de visualización contra el papel, no a ojo.
+
 - **Jest solo sobre la lógica del store.** Es lógica pura, sin DOM: alto valor por test y no se
   rompe cuando cambia el markup. Los tests de render con Testing Library se agregan si aparece un
   componente con lógica propia que valga la pena fijar. Por lo mismo el entorno es `node` y no

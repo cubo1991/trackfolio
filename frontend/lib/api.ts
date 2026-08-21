@@ -3,6 +3,7 @@ import type {
   ApplicationCreate,
   ApplicationFilters,
   ApplicationUpdate,
+  Metrics,
   User,
 } from "./types";
 
@@ -78,6 +79,8 @@ export const api = {
     }),
 
   me: () => request<User>("/auth/me"),
+
+  metrics: () => request<Metrics>("/metrics"),
 
   updateStaleThreshold: (days: number) =>
     request<User>("/auth/me", {

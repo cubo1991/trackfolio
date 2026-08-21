@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { ApplicationForm } from "@/components/ApplicationForm";
@@ -62,6 +63,14 @@ function Board() {
         </p>
 
         <div className="ml-auto flex items-center gap-3">
+          <Link
+            href="/metrics"
+            className="font-mono text-xs uppercase tracking-[0.14em] text-label-soft
+              transition-colors hover:text-label"
+          >
+            Reporte
+          </Link>
+
           <button
             onClick={() => setFormTarget("new")}
             className="flex items-center gap-1.5 bg-live px-2.5 py-1 font-mono text-xs

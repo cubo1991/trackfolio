@@ -64,3 +64,18 @@ export interface ApplicationFilters {
   date_from?: string;
   date_to?: string;
 }
+
+export interface FunnelStage {
+  stage: Status;
+  count: number;
+}
+
+export interface Metrics {
+  total: number;
+  responded: number;
+  /** Fraccion 0-1, no porcentaje. */
+  response_rate: number;
+  /** null mientras no haya ninguna respuesta con fecha. */
+  median_days_to_first_response: number | null;
+  funnel: FunnelStage[];
+}

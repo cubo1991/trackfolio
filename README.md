@@ -33,6 +33,8 @@ asistente con IA opcional para analizar ofertas.
   forzar los fallos: el optimistic update, el rollback y el borrado que se revierte.
 - Alertas de seguimiento: las postulaciones sin movimiento aparecen marcadas, con el umbral de
   días configurable por usuario.
+- Reporte de conversión: tasa de respuesta, mediana de días a la primera respuesta y embudo
+  aplicado → entrevista → oferta, calculado sobre el historial real de transiciones.
 
 ## Cómo correrlo
 

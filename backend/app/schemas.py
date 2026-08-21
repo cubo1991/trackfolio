@@ -90,3 +90,17 @@ class ApplicationRead(BaseModel):
                 and days_inactive >= stale_after_days
             ),
         )
+
+
+class FunnelStage(BaseModel):
+    stage: Status
+    count: int
+
+
+class Metrics(BaseModel):
+    total: int
+    responded: int
+    response_rate: float
+    #: None mientras no haya ninguna respuesta con fecha; un cero ahí sería mentira.
+    median_days_to_first_response: int | None
+    funnel: list[FunnelStage]
