@@ -3,9 +3,10 @@
 Tracker de postulaciones laborales con pipeline visual tipo Kanban, métricas de conversión y un
 asistente con IA opcional para analizar ofertas.
 
-> **Estado:** en desarrollo. El backend de la Fase 1 está funcionando y testeado, y el frontend
-> ya tiene login y el layout del tablero; falta el drag & drop. El plan completo y el
-> razonamiento detrás de cada decisión técnica están en [ROADMAP.md](ROADMAP.md).
+> **Estado:** en desarrollo. El pipeline Kanban ya es usable de punta a punta: crear, editar y
+> mover postulaciones entre columnas. Faltan los filtros y los tests de frontend para cerrar el
+> MVP. El plan completo y el razonamiento detrás de cada decisión técnica están en
+> [ROADMAP.md](ROADMAP.md).
 
 ## Stack
 
@@ -23,8 +24,10 @@ asistente con IA opcional para analizar ofertas.
 - CRUD de postulaciones con aislamiento por usuario.
 - 19 tests sobre los casos que importan: los de auth que tienen que fallar, el aislamiento entre
   usuarios y el registro del historial de estados.
-- Frontend con login y registro, sesión persistente y guard de rutas, más el layout de las cinco
-  columnas del pipeline.
+- Frontend con login y registro, sesión persistente y guard de rutas.
+- Pipeline Kanban con drag & drop entre columnas, usando la API nativa del navegador. El cambio
+  de estado se refleja al instante y se revierte solo si el servidor lo rechaza.
+- Alta, edición y borrado de postulaciones desde el tablero.
 
 ## Cómo correrlo
 

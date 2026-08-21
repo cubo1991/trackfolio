@@ -174,6 +174,22 @@ Se van completando a medida que se toman. Las de arranque:
 - **CORS con lista explícita de orígenes, no `*`.** Con `allow_credentials` el comodín ni
   siquiera es válido, y en producción va a ser el dominio del front y nada más.
 
+- **Drag & drop con la API nativa del navegador, sin librería.** `draggable` más
+  `dragstart`/`dragover`/`drop` alcanza para mover una tarjeta entre columnas, y son unas quince
+  líneas. Una librería como dnd-kit se justificaría si hiciera falta reordenar dentro de la
+  columna o soportar teclado; hoy no es el caso, y es una dependencia menos que mantener.
+
+- **Optimistic update con rollback explícito.** La tarjeta se mueve apenas la soltás, sin esperar
+  al servidor: es lo que hace que el tablero se sienta instantáneo. Si el PATCH falla, la tarjeta
+  vuelve sola a su columna y aparece un aviso. Sin el rollback la UI mentiría sobre el estado
+  real, que es peor que ser lenta.
+
+- **Agrupar por estado una sola vez.** Filtrar el array completo dentro de cada columna serían
+  cinco recorridas por render. Un solo agrupado previo hace lo mismo en una.
+
+- **`<input type="date">` nativo.** Da calendario, validación y localización sin una línea de
+  código ni un date picker de terceros.
+
 - **Jest solo sobre la lógica del store.** Es lógica pura, sin DOM: alto valor por test y no se
   rompe cuando cambia el markup. Los tests de render con Testing Library se agregan si aparece un
   componente con lógica propia que valga la pena fijar.
