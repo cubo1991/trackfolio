@@ -50,3 +50,12 @@ export type ApplicationCreate = Omit<
 >;
 
 export type ApplicationUpdate = Partial<ApplicationCreate>;
+
+/** Filtros del listado. Cadena vacía significa "sin filtrar" y no se manda a la API. */
+export interface ApplicationFilters {
+  company?: string;
+  status?: Status | "";
+  tag?: string;
+  date_from?: string;
+  date_to?: string;
+}

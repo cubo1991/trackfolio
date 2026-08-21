@@ -190,6 +190,21 @@ Se van completando a medida que se toman. Las de arranque:
 - **`<input type="date">` nativo.** Da calendario, validación y localización sin una línea de
   código ni un date picker de terceros.
 
+- **El filtro por tag se resuelve en Python, no en SQL.** En Postgres sería `tags @> '["x"]'` con
+  índice GIN, pero ese operador no existe en SQLite y la suite terminaría corriendo contra un
+  dialecto distinto al de producción, que es justo la clase de divergencia que ya rompió el
+  borrado en cascada. Para un tracker personal (cientos de filas) la diferencia no se nota; el
+  reemplazo, cuando se note, es el operador nativo con índice. Los otros cuatro filtros sí van
+  en SQL, donde se comportan igual en los dos motores.
+
+- **Búsqueda por empresa con `ilike` y coincidencia parcial.** Buscar "acme" tiene que encontrar
+  "ACME S.A.": en Postgres `like` distingue mayúsculas y `ilike` no, y en SQLite dan lo mismo.
+  Se usa el que es correcto en producción.
+
+- **Un solo `useEffect` con retraso para la carga inicial y los filtros.** Sin el retraso, escribir
+  "globant" en la búsqueda dispara siete requests. Con 250 ms de espera dispara uno, y el mismo
+  efecto cubre la carga al abrir el tablero sin necesitar un camino aparte.
+
 - **Jest solo sobre la lógica del store.** Es lógica pura, sin DOM: alto valor por test y no se
   rompe cuando cambia el markup. Los tests de render con Testing Library se agregan si aparece un
   componente con lógica propia que valga la pena fijar.

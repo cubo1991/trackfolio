@@ -1,6 +1,7 @@
 import type {
   Application,
   ApplicationCreate,
+  ApplicationFilters,
   ApplicationUpdate,
   User,
 } from "./types";
@@ -78,7 +79,14 @@ export const api = {
 
   me: () => request<User>("/auth/me"),
 
-  listApplications: () => request<Application[]>("/applications"),
+  listApplications: (filters: ApplicationFilters = {}) => {
+    // Los vacíos se descartan: mandar `company=` filtraría por cadena vacía en vez de no filtrar.
+    const params = new URLSearchParams(
+      Object.entries(filters).filter(([, value]) => value) as [string, string][],
+    );
+    const query = params.toString();
+    return request<Application[]>(`/applications${query ? `?${query}` : ""}`);
+  },
 
   createApplication: (body: ApplicationCreate) =>
     request<Application>("/applications", {

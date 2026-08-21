@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ApplicationForm } from "@/components/ApplicationForm";
 import { AuthGuard } from "@/components/AuthGuard";
 import { Column } from "@/components/Column";
+import { FilterBar } from "@/components/FilterBar";
 import { STATUSES, type Application } from "@/lib/types";
 import { useAuthStore } from "@/stores/auth";
 import { groupByStatus, useBoardStore } from "@/stores/board";
@@ -16,16 +17,19 @@ function Board() {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
 
-  const { applications, loading, error, load, move, dismissError } = useBoardStore();
+  const { applications, loading, error, filters, load, move, dismissError } = useBoardStore();
   const createApplication = useBoardStore((state) => state.createApplication);
   const updateApplication = useBoardStore((state) => state.updateApplication);
   const removeApplication = useBoardStore((state) => state.removeApplication);
 
   const [formTarget, setFormTarget] = useState<FormTarget>(null);
 
+  // Un solo efecto para la carga inicial y para los filtros. El retraso evita disparar un
+  // request por cada tecla mientras se escribe en la búsqueda.
   useEffect(() => {
-    load();
-  }, [load]);
+    const timer = setTimeout(load, 250);
+    return () => clearTimeout(timer);
+  }, [filters, load]);
 
   const grouped = groupByStatus(applications);
   const editing = formTarget !== null && formTarget !== "new" ? formTarget : null;
@@ -47,6 +51,8 @@ function Board() {
           </button>
         </div>
       </header>
+
+      <FilterBar />
 
       {error && (
         <div

@@ -1,11 +1,12 @@
+from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlmodel import Session, select
 
 from app.auth import CurrentUser
 from app.database import get_session
-from app.models import Application, Role, StatusChange, utcnow
+from app.models import Application, Role, Status, StatusChange, utcnow
 from app.schemas import ApplicationCreate, ApplicationRead, ApplicationUpdate
 
 router = APIRouter(prefix="/applications", tags=["applications"])
@@ -26,11 +27,41 @@ def _get_owned(application_id: int, user: CurrentUser, session: Session) -> Appl
 
 
 @router.get("", response_model=list[ApplicationRead])
-def list_applications(user: CurrentUser, session: SessionDep) -> list[Application]:
+def list_applications(
+    user: CurrentUser,
+    session: SessionDep,
+    company: Annotated[str | None, Query(description="Coincidencia parcial, sin distinguir mayúsculas")] = None,
+    status_filter: Annotated[Status | None, Query(alias="status")] = None,
+    tag: Annotated[str | None, Query(description="Devuelve las que tengan este tag")] = None,
+    date_from: Annotated[date | None, Query(description="Postuladas desde esta fecha")] = None,
+    date_to: Annotated[date | None, Query(description="Postuladas hasta esta fecha")] = None,
+) -> list[Application]:
+    """Todos los filtros son opcionales y se combinan con AND."""
     query = select(Application)
+
     if user.role is not Role.admin:
         query = query.where(Application.user_id == user.id)
-    return list(session.exec(query.order_by(Application.applied_date.desc())).all())
+
+    if company:
+        # ilike y no like: buscar "acme" tiene que encontrar "ACME S.A.".
+        query = query.where(Application.company.ilike(f"%{company}%"))
+    if status_filter is not None:
+        query = query.where(Application.status == status_filter)
+    if date_from is not None:
+        query = query.where(Application.applied_date >= date_from)
+    if date_to is not None:
+        query = query.where(Application.applied_date <= date_to)
+
+    results = list(session.exec(query.order_by(Application.applied_date.desc())).all())
+
+    # ponytail: el filtro por tag se hace en Python, no en SQL. En Postgres seria `tags @> '["x"]'`
+    # con indice GIN, pero ese operador no existe en SQLite y la suite correria contra un dialecto
+    # distinto del de produccion. Para un tracker personal (cientos de filas) la diferencia no se
+    # nota; cuando se note, el reemplazo es el operador nativo con indice.
+    if tag:
+        results = [item for item in results if tag in item.tags]
+
+    return results
 
 
 @router.post("", response_model=ApplicationRead, status_code=status.HTTP_201_CREATED)

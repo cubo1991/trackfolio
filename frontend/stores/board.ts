@@ -1,14 +1,29 @@
 import { create } from "zustand";
 
 import { ApiError, api } from "@/lib/api";
-import type { Application, ApplicationCreate, ApplicationUpdate, Status } from "@/lib/types";
+import type {
+  Application,
+  ApplicationCreate,
+  ApplicationFilters,
+  ApplicationUpdate,
+  Status,
+} from "@/lib/types";
+
+const SIN_FILTROS: ApplicationFilters = {};
 
 interface BoardState {
   applications: Application[];
   loading: boolean;
   error: string | null;
+  filters: ApplicationFilters;
 
+  /** Trae del servidor las postulaciones que pasan los filtros actuales. */
   load: () => Promise<void>;
+  setFilter: <K extends keyof ApplicationFilters>(
+    key: K,
+    value: ApplicationFilters[K],
+  ) => void;
+  clearFilters: () => void;
   /** Mueve una tarjeta de columna. Actualiza la UI primero y revierte si la API falla. */
   move: (id: number, status: Status) => Promise<void>;
   createApplication: (body: ApplicationCreate) => Promise<void>;
@@ -25,15 +40,22 @@ export const useBoardStore = create<BoardState>((set, get) => ({
   applications: [],
   loading: false,
   error: null,
+  filters: SIN_FILTROS,
 
   load: async () => {
     set({ loading: true, error: null });
     try {
-      set({ applications: await api.listApplications(), loading: false });
+      set({ applications: await api.listApplications(get().filters), loading: false });
     } catch (caught) {
       set({ loading: false, error: message(caught, "No se pudieron cargar las postulaciones.") });
     }
   },
+
+  // El filtrado lo resuelve el servidor, no el cliente: filtrar acá obligaría a traerse todas
+  // las postulaciones siempre, y deja la API sin una capacidad que le corresponde.
+  setFilter: (key, value) => set((state) => ({ filters: { ...state.filters, [key]: value } })),
+
+  clearFilters: () => set({ filters: SIN_FILTROS }),
 
   move: async (id, status) => {
     const previous = get().applications.find((application) => application.id === id);
