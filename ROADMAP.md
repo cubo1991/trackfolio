@@ -268,6 +268,17 @@ Se van completando a medida que se toman. Las de arranque:
 - **Las sugerencias del modelo nunca se aplican solas.** Los tags detectados se agregan con un
   click. Son los tags del usuario y el modelo se puede equivocar.
 
+- **Las credenciales del asistente siguen la cadena del SDK, no solo la variable de entorno.**
+  `ant auth login` deja un perfil en disco y no exporta ninguna variable; un chequeo que mirara
+  solo `ANTHROPIC_API_KEY` dejaría el asistente apagado con credenciales válidas. El chequeo de
+  disponibilidad es optimista a propósito: confirmar un perfil con certeza costaría una llamada
+  paga cada vez que se abre una ficha, así que se mira si el archivo de credenciales existe y el
+  error real, si lo hay, aparece al analizar.
+
+- **Los tests del asistente apuntan `ANTHROPIC_CONFIG_DIR` a un directorio vacío.** Sin eso, el
+  resultado dependería de si quien corre la suite hizo `ant auth login` en su máquina, y un test
+  que cambia de respuesta según la máquina no fija nada.
+
 - **Jest solo sobre la lógica del store.** Es lógica pura, sin DOM: alto valor por test y no se
   rompe cuando cambia el markup. Los tests de render con Testing Library se agregan si aparece un
   componente con lógica propia que valga la pena fijar. Por lo mismo el entorno es `node` y no

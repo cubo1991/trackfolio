@@ -25,20 +25,38 @@ OFERTA = (
 
 
 @pytest.fixture
-def sin_key(monkeypatch):
+def sin_credenciales(monkeypatch, tmp_path):
+    """Ni variable de entorno ni perfil del CLI.
+
+    El directorio de config se apunta a uno vacio a proposito: si no, el resultado dependeria de
+    si quien corre la suite hizo `ant auth login` en su maquina, y un test que cambia de
+    respuesta segun la maquina no fija nada.
+    """
     monkeypatch.setattr(settings, "anthropic_api_key", None)
+    monkeypatch.setenv("ANTHROPIC_CONFIG_DIR", str(tmp_path / "vacio"))
 
 
 @pytest.fixture
-def con_key(monkeypatch):
+def con_key(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, "anthropic_api_key", "sk-de-mentira")
+    monkeypatch.setenv("ANTHROPIC_CONFIG_DIR", str(tmp_path / "vacio"))
+
+
+@pytest.fixture
+def con_perfil_del_cli(monkeypatch, tmp_path):
+    """Sin variable de entorno, pero con el perfil que deja `ant auth login`."""
+    monkeypatch.setattr(settings, "anthropic_api_key", None)
+    credenciales = tmp_path / "config" / "credentials"
+    credenciales.mkdir(parents=True)
+    (credenciales / "default.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setenv("ANTHROPIC_CONFIG_DIR", str(tmp_path / "config"))
 
 
 class TestSinConfigurar:
-    def test_el_estado_dice_que_no_esta_disponible(self, client: TestClient, sin_key):
+    def test_el_estado_dice_que_no_esta_disponible(self, client: TestClient, sin_credenciales):
         assert client.get("/assistant/status").json() == {"available": False}
 
-    def test_analizar_devuelve_503_y_no_500(self, client: TestClient, auth_headers, sin_key):
+    def test_analizar_devuelve_503_y_no_500(self, client: TestClient, auth_headers, sin_credenciales):
         """503 y no 500: no es un bug del servidor, es una función que no está configurada,
         y el mensaje tiene que decir eso."""
         response = client.post(
@@ -46,8 +64,9 @@ class TestSinConfigurar:
         )
         assert response.status_code == 503
         assert "ANTHROPIC_API_KEY" in response.json()["detail"]
+        assert "ant auth login" in response.json()["detail"]
 
-    def test_el_resto_de_la_app_funciona_igual(self, client: TestClient, auth_headers, sin_key):
+    def test_el_resto_de_la_app_funciona_igual(self, client: TestClient, auth_headers, sin_credenciales):
         """El criterio de la etapa: sin key, TrackFolio entero anda como si nada."""
         creada = client.post(
             "/applications",
@@ -109,6 +128,18 @@ class TestConKey:
             "/assistant/analyze-offer", json={"offer_text": OFERTA}, headers=auth_headers
         )
         assert response.status_code == 503
+
+
+class TestPerfilDelCLI:
+    def test_un_perfil_en_disco_alcanza_para_habilitar_el_asistente(
+        self, client: TestClient, con_perfil_del_cli
+    ):
+        """`ant auth login` no deja ninguna variable de entorno: si el chequeo mirara solo
+        ANTHROPIC_API_KEY, el asistente quedaria apagado con credenciales validas."""
+        assert client.get("/assistant/status").json() == {"available": True}
+
+    def test_sin_perfil_ni_key_sigue_apagado(self, client: TestClient, sin_credenciales):
+        assert client.get("/assistant/status").json() == {"available": False}
 
 
 class TestValidacionYAcceso:

@@ -92,5 +92,7 @@ Copiar `backend/.env.example` a `backend/.env` y ajustar. Los valores por defect
 Postgres del `compose.yaml`, en el puerto 5435 para no chocar con instalaciones locales.
 `SECRET_KEY` tiene un valor de desarrollo que **hay que cambiar** antes de cualquier deploy.
 
-`ANTHROPIC_API_KEY` es opcional y solo habilita el asistente de ofertas. El resto de TrackFolio
-no depende de ella.
+El asistente de ofertas es opcional y acepta dos formas de credencial: `ANTHROPIC_API_KEY` en el
+entorno, o el perfil que deja `ant auth login` con el CLI de Anthropic. Para un deploy hay que
+usar la variable — el login interactivo es para la máquina de desarrollo. Sin ninguna de las dos,
+el resto de TrackFolio funciona igual y el asistente simplemente no aparece.

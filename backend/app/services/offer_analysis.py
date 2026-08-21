@@ -5,6 +5,9 @@ es la condición de la etapa — sin key configurada, TrackFolio funciona igual 
 deja de estar disponible.
 """
 
+import os
+from pathlib import Path
+
 import anthropic
 from pydantic import BaseModel, Field
 
@@ -56,13 +59,43 @@ Reglas:
 - Escribís en español rioplatense, sin tratar de usted."""
 
 
+def has_credentials() -> bool:
+    """Si hay alguna credencial con la que intentar.
+
+    Es optimista a propósito. El SDK resuelve credenciales en cadena —variable de entorno, y si
+    no, el perfil que deja `ant auth login` en el disco— y el perfil recién se usa al hacer el
+    request: construir el cliente no falla ni revela nada. Detectar el perfil con certeza
+    costaría una llamada paga por cada vez que se abre una ficha, así que acá se mira si el
+    archivo de credenciales existe y se deja que el error real, si lo hay, aparezca al analizar.
+    """
+    if settings.anthropic_api_key:
+        return True
+
+    config_dir = os.environ.get("ANTHROPIC_CONFIG_DIR")
+    base = (
+        Path(config_dir)
+        if config_dir
+        else Path(os.environ["APPDATA"]) / "Anthropic"
+        if os.name == "nt" and "APPDATA" in os.environ
+        else Path.home() / ".config" / "anthropic"
+    )
+    return (base / "credentials").is_dir() and any((base / "credentials").glob("*.json"))
+
+
 def analyze_offer(offer_text: str, profile: str | None) -> OfferAnalysis:
-    if not settings.anthropic_api_key:
+    if not has_credentials():
         raise AssistantUnavailable(
-            "El asistente no está configurado. Falta ANTHROPIC_API_KEY en el backend."
+            "El asistente no está configurado. Poné ANTHROPIC_API_KEY en el backend, "
+            "o corré `ant auth login`."
         )
 
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+    # Sin `api_key` explícita el SDK recorre su cadena y encuentra el perfil del CLI. Pasarle
+    # `None` a mano sería equivalente, pero dejarlo omitido es lo que documenta el SDK.
+    client = (
+        anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        if settings.anthropic_api_key
+        else anthropic.Anthropic()
+    )
 
     response = client.beta.messages.parse(
         model=settings.anthropic_model,

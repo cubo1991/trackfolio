@@ -6,6 +6,7 @@ from app.services.offer_analysis import (
     AssistantUnavailable,
     OfferAnalysis,
     analyze_offer,
+    has_credentials,
 )
 
 router = APIRouter(prefix="/assistant", tags=["assistant"])
@@ -15,9 +16,7 @@ router = APIRouter(prefix="/assistant", tags=["assistant"])
 def assistant_status() -> dict[str, bool]:
     """Le dice al frontend si mostrar la función. Sin esto, el único modo de enterarse de que
     el asistente no está configurado sería pegar una oferta y comerse un error."""
-    from app.config import settings
-
-    return {"available": bool(settings.anthropic_api_key)}
+    return {"available": has_credentials()}
 
 
 @router.post("/analyze-offer", response_model=OfferAnalysis)
