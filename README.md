@@ -29,6 +29,8 @@ asistente con IA opcional para analizar ofertas.
   de estado se refleja al instante y se revierte solo si el servidor lo rechaza.
 - Alta, edición y borrado de postulaciones desde el tablero.
 - Filtros combinables por empresa, estado, tag y rango de fechas, resueltos en el servidor.
+- 15 tests de Jest sobre la lógica del tablero, con el módulo de la API mockeado para poder
+  forzar los fallos: el optimistic update, el rollback y el borrado que se revierte.
 
 ## Cómo correrlo
 
@@ -70,6 +72,12 @@ npm install && npm run dev
 
 Queda en http://localhost:3000. Necesita la API levantada; apunta a `http://127.0.0.1:8000` salvo
 que definas `NEXT_PUBLIC_API_URL`.
+
+Los tests del frontend tampoco necesitan servidor:
+
+```bash
+npm test
+```
 
 ## Configuración
 

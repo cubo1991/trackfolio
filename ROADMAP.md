@@ -207,4 +207,18 @@ Se van completando a medida que se toman. Las de arranque:
 
 - **Jest solo sobre la lógica del store.** Es lógica pura, sin DOM: alto valor por test y no se
   rompe cuando cambia el markup. Los tests de render con Testing Library se agregan si aparece un
-  componente con lógica propia que valga la pena fijar.
+  componente con lógica propia que valga la pena fijar. Por lo mismo el entorno es `node` y no
+  `jsdom`: arranca más rápido y no hace falta.
+
+- **Se mockea el módulo de la API completo.** El store no debería saber si del otro lado hay una
+  red. Lo que hay que poder provocar a voluntad es el fallo, que contra un servidor que anda bien
+  es imposible de reproducir — y el fallo es justo el camino donde vive el rollback.
+
+- **El test del optimistic update deja la promesa pendiente a propósito.** Es la única forma de
+  observar el estado intermedio y comprobar que la tarjeta se movió *antes* de que el servidor
+  respondiera. Si el store esperara la respuesta, el tablero se sentiría trabado en cada arrastre
+  y ningún test que solo mire el resultado final lo notaría.
+
+- **Cada test se escribió rompiendo primero el código.** Un test que pasa igual con la lógica rota
+  no prueba nada. El del rollback se verificó sacando la línea que restaura la tarjeta: falla con
+  "Expected: applied, Received: offer", que es exactamente el bug que tiene que atajar.
