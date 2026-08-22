@@ -17,6 +17,7 @@ from fastapi.testclient import TestClient
 from app.config import settings
 from app.routers import assistant
 from app.services.offer_analysis import AssistantUnavailable, OfferAnalysis
+from app.services.profile_builder import GithubLookupError, fetch_github_summary
 
 OFERTA = (
     "Buscamos Backend Developer con experiencia en Python y FastAPI para sumarse al equipo "
@@ -164,6 +165,148 @@ class TestValidacionYAcceso:
             ).status_code
             == 422
         )
+
+
+class TestArmarPerfil:
+    def test_sin_ninguna_fuente_es_400(self, client: TestClient, auth_headers, con_key):
+        response = client.post("/assistant/build-profile", headers=auth_headers)
+        assert response.status_code == 400
+
+    def test_requiere_sesion(self, client: TestClient, con_key):
+        assert client.post("/assistant/build-profile").status_code == 401
+
+    def test_sin_credenciales_es_503(self, client: TestClient, auth_headers, sin_credenciales):
+        response = client.post(
+            "/assistant/build-profile",
+            data={"linkedin_text": "Dev backend con 3 años de experiencia."},
+            headers=auth_headers,
+        )
+        assert response.status_code == 503
+
+    def test_arma_el_perfil_a_partir_de_linkedin(
+        self, client: TestClient, auth_headers, con_key, monkeypatch
+    ):
+        monkeypatch.setattr(assistant, "build_profile_draft", lambda **_: "Dev backend, 3 años.")
+
+        response = client.post(
+            "/assistant/build-profile",
+            data={"linkedin_text": "Dev backend con 3 años de experiencia."},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["profile"] == "Dev backend, 3 años."
+
+    def test_un_username_de_github_inexistente_es_400(
+        self, client: TestClient, auth_headers, con_key, monkeypatch
+    ):
+        def no_existe(_username):
+            raise assistant.GithubLookupError("No existe el usuario de GitHub 'nadie'.")
+
+        monkeypatch.setattr(assistant, "fetch_github_summary", no_existe)
+
+        response = client.post(
+            "/assistant/build-profile",
+            data={"github_username": "nadie"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+        assert "nadie" in response.json()["detail"]
+
+    def test_un_cv_no_legible_es_400(self, client: TestClient, auth_headers, con_key, monkeypatch):
+        def no_se_puede_leer(_data):
+            raise assistant.CvParseError("No se pudo leer el PDF. ¿Es un PDF válido?")
+
+        monkeypatch.setattr(assistant, "extract_cv_text", no_se_puede_leer)
+
+        response = client.post(
+            "/assistant/build-profile",
+            files={"cv": ("cv.pdf", b"no es un pdf de verdad", "application/pdf")},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400
+
+    def test_una_caida_del_proveedor_es_502(
+        self, client: TestClient, auth_headers, con_key, monkeypatch
+    ):
+        def explota(**_):
+            raise RuntimeError("Connection reset by peer en api.anthropic.com")
+
+        monkeypatch.setattr(assistant, "build_profile_draft", explota)
+
+        response = client.post(
+            "/assistant/build-profile",
+            data={"linkedin_text": "Dev backend con 3 años de experiencia."},
+            headers=auth_headers,
+        )
+        assert response.status_code == 502
+        assert "anthropic.com" not in response.json()["detail"]
+
+
+class TestGithubSummary:
+    def test_un_username_sin_repos_lo_dice(self, monkeypatch):
+        class FakeResponse:
+            status_code = 200
+            is_error = False
+
+            def json(self):
+                return []
+
+        monkeypatch.setattr(
+            "app.services.profile_builder.httpx.get", lambda *a, **k: FakeResponse()
+        )
+        resumen = fetch_github_summary("alguien")
+        assert "no tiene repositorios" in resumen
+
+    def test_descarta_forks_y_ordena_por_estrellas(self, monkeypatch):
+        class FakeResponse:
+            status_code = 200
+            is_error = False
+
+            def json(self):
+                return [
+                    {
+                        "name": "un-fork",
+                        "fork": True,
+                        "language": "Python",
+                        "description": "no debería aparecer",
+                        "stargazers_count": 999,
+                    },
+                    {
+                        "name": "popular",
+                        "fork": False,
+                        "language": "Python",
+                        "description": "el más estrellado",
+                        "stargazers_count": 10,
+                    },
+                    {
+                        "name": "menos-popular",
+                        "fork": False,
+                        "language": "TypeScript",
+                        "description": None,
+                        "stargazers_count": 1,
+                    },
+                ]
+
+        monkeypatch.setattr(
+            "app.services.profile_builder.httpx.get", lambda *a, **k: FakeResponse()
+        )
+        resumen = fetch_github_summary("alguien")
+        assert "un-fork" not in resumen
+        assert resumen.index("popular") < resumen.index("menos-popular")
+
+    def test_username_inexistente(self, monkeypatch):
+        class FakeResponse:
+            status_code = 404
+            is_error = True
+
+            def json(self):
+                return {}
+
+        monkeypatch.setattr(
+            "app.services.profile_builder.httpx.get", lambda *a, **k: FakeResponse()
+        )
+        with pytest.raises(GithubLookupError, match="nadie"):
+            fetch_github_summary("nadie")
 
 
 class TestPerfil:

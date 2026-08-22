@@ -38,11 +38,14 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = tokenStorage.get();
+  // FormData (subida del CV) fija su propio boundary en el header; si lo pisamos con
+  // application/json el multipart llega roto y el backend no puede parsear el body.
+  const esFormData = init.body instanceof FormData;
 
   const response = await fetch(`${BASE_URL}${path}`, {
     ...init,
     headers: {
-      "Content-Type": "application/json",
+      ...(esFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init.headers,
     },
@@ -99,6 +102,17 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ offer_text: offerText }),
     }),
+
+  buildProfile: (args: { linkedinText?: string; githubUsername?: string; cv?: File | null }) => {
+    const formData = new FormData();
+    if (args.linkedinText) formData.append("linkedin_text", args.linkedinText);
+    if (args.githubUsername) formData.append("github_username", args.githubUsername);
+    if (args.cv) formData.append("cv", args.cv);
+    return request<{ profile: string }>("/assistant/build-profile", {
+      method: "POST",
+      body: formData,
+    });
+  },
 
   listApplications: (filters: ApplicationFilters = {}) => {
     // Los vacíos se descartan: mandar `company=` filtraría por cadena vacía en vez de no filtrar.

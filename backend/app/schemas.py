@@ -110,3 +110,10 @@ class Metrics(BaseModel):
 
 class OfferAnalysisRequest(BaseModel):
     offer_text: str = Field(min_length=40, max_length=20_000)
+
+
+class ProfileDraft(BaseModel):
+    """Borrador de perfil armado por IA. No se guarda solo: el usuario lo revisa y confirma
+    con el PATCH a /auth/me que ya existía para el perfil escrito a mano."""
+
+    profile: str

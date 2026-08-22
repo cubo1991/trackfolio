@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { IconPlus } from "@/components/icons";
@@ -26,11 +27,9 @@ const FIELD =
  */
 export function OfferAssistant({ currentTags, onAddTags }: Props) {
   const user = useAuthStore((state) => state.user);
-  const setProfile = useAuthStore((state) => state.setProfile);
 
   const [available, setAvailable] = useState<boolean | null>(null);
   const [offerText, setOfferText] = useState("");
-  const [profileDraft, setProfileDraft] = useState(user?.profile ?? "");
   const [analysis, setAnalysis] = useState<OfferAnalysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,9 +51,6 @@ export function OfferAssistant({ currentTags, onAddTags }: Props) {
     setError(null);
     setAnalyzing(true);
     try {
-      if (profileDraft.trim() && profileDraft !== user?.profile) {
-        await setProfile(profileDraft.trim());
-      }
       setAnalysis(await api.analyzeOffer(offerText));
     } catch (caught) {
       setError(
@@ -74,16 +70,13 @@ export function OfferAssistant({ currentTags, onAddTags }: Props) {
       {!user?.profile && (
         <div className="mt-2">
           <p className="text-[0.8125rem] text-ink-soft">
-            Contá en una o dos líneas qué sabés hacer. El asistente compara la oferta contra
-            esto, y se guarda para las próximas.
+            Todavía no tenés un perfil configurado — sin eso, el análisis no tiene contra qué
+            comparar la oferta.{" "}
+            <Link href="/profile" className="underline decoration-ink-soft/40 hover:text-ink">
+              Armalo en Mi perfil
+            </Link>
+            .
           </p>
-          <textarea
-            rows={2}
-            value={profileDraft}
-            onChange={(event) => setProfileDraft(event.target.value)}
-            placeholder="Dev backend, 3 años con Python y FastAPI. Algo de React."
-            className={`${FIELD} mt-1.5 resize-none`}
-          />
         </div>
       )}
 
