@@ -1,20 +1,12 @@
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.database import create_db_and_tables
 from app.routers import applications, assistant, auth, metrics
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    create_db_and_tables()
-    yield
-
-
-app = FastAPI(title="TrackFolio API", lifespan=lifespan)
+# El esquema lo crea/actualiza Alembic (`alembic upgrade head`), no la app al arrancar: con
+# datos de producción que no se pueden perder, create_all ya no alcanza.
+app = FastAPI(title="TrackFolio API")
 
 # Lista explícita de orígenes, no "*": con allow_credentials el comodín ni siquiera es válido,
 # y en producción va a ser el dominio del front y nada más.
